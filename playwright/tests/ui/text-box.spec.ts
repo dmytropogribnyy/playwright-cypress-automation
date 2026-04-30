@@ -4,10 +4,10 @@ import { TextBoxPage, TextBoxData } from '../../pages/TextBoxPage';
 test.describe('DemoQA — Text Box form', () => {
   test('submits the form and renders all values in the output', async ({ page }) => {
     const data: TextBoxData = {
-      fullName: 'John Doe',
-      email: 'john.doe@example.com',
-      currentAddress: '221B Baker Street, London',
-      permanentAddress: '742 Evergreen Terrace, Springfield'
+      fullName: 'Alex Turner',
+      email: 'alex.turner@testmail.com',
+      currentAddress: '14 Maple Avenue, Austin TX 78701',
+      permanentAddress: '9 Riverside Drive, Portland OR 97201'
     };
 
     const textBox = new TextBoxPage(page);

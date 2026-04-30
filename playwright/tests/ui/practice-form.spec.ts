@@ -2,11 +2,11 @@ import { test } from '../../fixtures/test';
 import { PracticeFormPage, PracticeFormData } from '../../pages/PracticeFormPage';
 
 const validData: PracticeFormData = {
-  firstName: 'John',
-  lastName: 'Doe',
-  email: 'john.doe@example.com',
+  firstName: 'Alex',
+  lastName: 'Turner',
+  email: 'alex.turner@testmail.com',
   gender: 'Male',
-  mobile: '5551234567'
+  mobile: '7804321567'
 };
 
 test.describe('DemoQA — Practice Form (positive)', () => {
