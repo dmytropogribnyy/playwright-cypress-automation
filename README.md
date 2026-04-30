@@ -138,7 +138,7 @@ Prevention and detection are equally important — fixing flake without measurin
 
 ### 3. PR strategy vs nightly runs
 
-**Every PR** (target: under 10 minutes) — lint, type-check, API contract tests, and in a larger suite tagged `@smoke` + `@critical` UI tests on Chromium. Fail-fast. Required to merge.
+**Every PR** (target: under 10 minutes) — lint, type-check, contract-style API checks, and in a larger suite tagged `@smoke` + `@critical` UI tests on Chromium. Fail-fast. Required to merge.
 
 **Nightly on `main`** — full regression on both runners, cross-browser (Firefox + WebKit), longer negative paths (network failures, timeouts, idempotency), visual regression, and live third-party integrations that are too noisy for PRs. Failures notify the responsible test owner.
 
