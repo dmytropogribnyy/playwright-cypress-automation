@@ -1,6 +1,6 @@
 # QA Automation Assignment — Cypress + Playwright
 
-![CI](https://github.com/dmytropogribnyy/playwright-cypress-automation/actions/workflows/ci.yml/badge.svg)
+[![CI](https://github.com/dmytropogribnyy/playwright-cypress-automation/actions/workflows/ci.yml/badge.svg)](https://github.com/dmytropogribnyy/playwright-cypress-automation/actions/workflows/ci.yml)
 
 Two test runners, one repo. **Cypress** covers SauceDemo (UI + network + API); **Playwright** covers DemoQA (UI + diagnostics) and JSONPlaceholder (API). Both use TypeScript, Page Objects, and environment-driven config. CI runs on GitHub Actions.
 
