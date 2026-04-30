@@ -1,227 +1,142 @@
-# Senior QA Automation Assignment — Cypress + Playwright
+# QA Automation Assignment — Cypress + Playwright
 
-A compact, production-style automation framework covering the assignment in two
-runners side-by-side: **Cypress** for SauceDemo (UI + network + API) and
-**Playwright** for DemoQA (UI + diagnostics) with JSONPlaceholder as the API
-target. TypeScript is used for both, configuration is environment-driven, and
-the suites are designed to be CI-friendly out of the box.
+![CI](https://github.com/dmytropogribnyy/playwright-cypress-automation/actions/workflows/ci.yml/badge.svg)
+
+Two test runners, one repo. **Cypress** covers SauceDemo (UI + network + API); **Playwright** covers DemoQA (UI + diagnostics) and JSONPlaceholder (API). Both use TypeScript, Page Objects, and environment-driven config. CI runs on GitHub Actions.
+
+---
 
 ## Stack
 
-| Concern | Choice |
-| --- | --- |
-| Cypress runner | `cypress@15` (TypeScript) |
-| Playwright runner | `@playwright/test@1.59` (TypeScript) |
+| | |
+|---|---|
+| Cypress | `cypress@15` + TypeScript |
+| Playwright | `@playwright/test@1.59` + TypeScript |
+| Structure | Page Objects + typed test data |
 | Config | `dotenv` → `cypress.config.ts` / `playwright.config.ts` |
-| Structure | Page Objects + Playwright fixtures + typed test data |
-| Diagnostics | Cypress: screenshots + video on failure. Playwright: screenshot + trace + video, all `retain-on-failure`, plus HTML report |
-| Stability | No fixed waits anywhere. Web-first / `should()` assertions only. Stable selectors (`data-test`, IDs, role-based). Network ad-blocker fixture for DemoQA. |
+| Diagnostics | Screenshots, video, Playwright trace — all on failure |
+| Stability | No fixed waits · stable selectors · ad-blocker fixture for DemoQA |
 
-## Project Layout
+---
+
+## Project layout
 
 ```
-.
-├── cypress/
-│   ├── e2e/
-│   │   ├── api/reqres.api.cy.ts                # Task 3
-│   │   └── ui/
-│   │       ├── saucedemo.login.cy.ts           # Task 1
-│   │       └── saucedemo.network.cy.ts         # Task 2
-│   ├── pages/
-│   │   ├── SauceLoginPage.ts
-│   │   └── SauceInventoryPage.ts
-│   ├── support/e2e.ts
-│   └── tsconfig.json
-├── playwright/
-│   ├── fixtures/test.ts                        # ad-blocker fixture
-│   ├── pages/
-│   │   ├── TextBoxPage.ts
-│   │   └── PracticeFormPage.ts
-│   └── tests/
-│       ├── api/posts.api.spec.ts               # Task 6
-│       └── ui/
-│           ├── text-box.spec.ts                # Task 4
-│           └── practice-form.spec.ts           # Task 5 (positive + negative)
-├── .github/workflows/ci.yml                    # GitHub Actions
-├── cypress.config.ts
-├── playwright.config.ts
-├── tsconfig.json
-├── .env.example
-└── package.json
+cypress/
+  e2e/
+    api/    reqres.api.cy.ts          # Task 3 — Reqres API
+    ui/     saucedemo.login.cy.ts     # Task 1 — UI flow
+            saucedemo.network.cy.ts   # Task 2 — network interception
+  pages/    SauceLoginPage.ts  SauceInventoryPage.ts
+
+playwright/
+  fixtures/ test.ts                   # ad-blocker route fixture
+  pages/    TextBoxPage.ts  PracticeFormPage.ts
+  tests/
+    api/    posts.api.spec.ts          # Task 6 — JSONPlaceholder
+    ui/     text-box.spec.ts           # Task 4 — Text Box
+            practice-form.spec.ts      # Task 5 — Practice Form (pos + neg)
+
+.github/workflows/ci.yml
+scripts/check-no-hard-waits.js        # enforces no fixed waits
 ```
+
+---
 
 ## Setup
 
 ```bash
-# 1. Clone and install
 npm install
-
-# 2. Install the Playwright Chromium binary
-npm run pw:install
-
-# 3. Copy env template (defaults are already wired in configs, .env is optional)
-cp .env.example .env
+npm run pw:install      # download Playwright Chromium binary
+cp .env.example .env    # fill in REQRES_API_KEY (see below)
 ```
 
-> **Reqres API key (required).** Reqres.in requires an `x-api-key` header
-> since 2025. Without it the API returns 401 and the Cypress test fails.
-> Get a free key at <https://app.reqres.in/api-keys>, then:
->
-> - **Local:** add `REQRES_API_KEY=<your_key>` to `.env`
-> - **CI:** add `REQRES_API_KEY` as a GitHub Actions repository secret
->   *(Settings → Secrets and variables → Actions → New repository secret)*
->
-> The CI workflow already reads it via `${{ secrets.REQRES_API_KEY }}`.
+> **Reqres API key — required.**
+> Reqres.in requires an `x-api-key` header since 2025 — without it the API returns 401.
+> Get a free key at [app.reqres.in/api-keys](https://app.reqres.in/api-keys), then:
+> - **Local:** set `REQRES_API_KEY=<your_key>` in `.env`
+> - **CI:** add `REQRES_API_KEY` as a repository secret *(GitHub → Settings → Secrets and variables → Actions)*
+
+---
 
 ## Running tests
 
 ```bash
-# Cypress (headless)
-npm run cy:run
+npm run cy:run        # Cypress headless
+npm run cy:open       # Cypress interactive
 
-# Cypress (interactive UI)
-npm run cy:open
+npm run pw:test       # Playwright headless
+npm run pw:headed     # Playwright headed
+npm run pw:report     # Open HTML report
 
-# Playwright (headless, all projects)
-npm run pw:test
+npm test              # both runners back-to-back
 
-# Playwright (headed)
-npm run pw:headed
-
-# Playwright HTML report
-npm run pw:report
-
-# Both runners back-to-back
-npm test
+npm run lint:waits    # check for forbidden fixed waits
 ```
-
-## Test Coverage Matrix
-
-| # | Task | Runner | Spec |
-| --- | --- | --- | --- |
-| 1 | SauceDemo UI flow (login → add to cart → badge=1) | Cypress | `cypress/e2e/ui/saucedemo.login.cy.ts` |
-| 2 | Network interception during login + product loading | Cypress | `cypress/e2e/ui/saucedemo.network.cy.ts` |
-| 3 | Reqres `GET /api/users?page=2` contract | Cypress | `cypress/e2e/api/reqres.api.cy.ts` |
-| 4 | DemoQA Text Box — fill, submit, validate output | Playwright | `playwright/tests/ui/text-box.spec.ts` |
-| 5 | DemoQA Practice Form — positive + 2 negative cases | Playwright | `playwright/tests/ui/practice-form.spec.ts` |
-| 6 | JSONPlaceholder `GET /posts` via request context | Playwright | `playwright/tests/api/posts.api.spec.ts` |
-| 7 | Failure diagnostics (screenshot, trace, video, HTML report) | Both | `playwright.config.ts`, `cypress.config.ts` |
-
-## Failure diagnostics
-
-- **Cypress** — `screenshotOnRunFailure: true`, `video: true`. Artifacts land
-  in `cypress/screenshots/` and `cypress/videos/`. Two retries in `runMode`
-  to absorb transient demo-site flake.
-- **Playwright** — `screenshot: 'only-on-failure'`, `trace: 'retain-on-failure'`,
-  `video: 'retain-on-failure'`, plus an HTML reporter. Two retries in CI.
-  Open the trace viewer with `npx playwright show-trace test-results/<...>/trace.zip`.
-
-## Troubleshooting
-
-### Cypress: `Cypress.exe: bad option: --smoke-test` on Windows
-
-If `npx cypress run` fails with the above error and `Cypress.exe` appears to
-launch as raw Node, the most likely cause is the environment variable
-`ELECTRON_RUN_AS_NODE=1` being inherited from the host shell. VS Code's
-integrated terminal sometimes propagates this variable, which forces every
-Electron-based binary (Cypress included) to behave as a Node process and
-reject Cypress-specific CLI flags.
-
-Unset it before running Cypress:
-
-```powershell
-# PowerShell
-Remove-Item Env:\ELECTRON_RUN_AS_NODE -ErrorAction SilentlyContinue
-npx cypress run
-```
-
-```bash
-# Git Bash / WSL
-unset ELECTRON_RUN_AS_NODE
-npx cypress run
-```
-
-For a permanent fix, launch the terminal outside VS Code or remove the
-variable from your user environment.
-
-## Notes on third-party APIs and SUTs
-
-- **SauceDemo is a static SPA without a real backend API.** The "network
-  interception" task (Task 2) targets the genuine HTTP traffic the app
-  actually generates during product loading: the `/inventory.html` navigation
-  request and a product image asset. Both are validated at the network layer
-  (status, content-type, body markers). The same `cy.intercept` pattern
-  applies unchanged to a real `/api/inventory` endpoint in production.
-- **Reqres.in** may require an `x-api-key` header depending on their current
-  access policy. The test uses `cy.request` (Node.js-level, no CORS) and
-  passes the key via `Cypress.env('reqresApiKey')` when set. If no key is
-  needed, the request succeeds without one. In a real framework this
-  third-party would be replaced with a mock service (WireMock / Mockoon / MSW)
-  for fast, deterministic CI runs, with live integration in a nightly suite.
-- **DemoQA** loads heavy third-party ad iframes that often overlap form
-  controls and cause flaky clicks. A Playwright fixture
-  (`playwright/fixtures/test.ts`) aborts ad-network requests at the route
-  layer, so the suite only interacts with the app under test.
 
 ---
 
-## Engineering Reflection
+## Test coverage
 
-### 1. How would you scale this framework to support 300+ tests?
+| # | Task | Runner | File |
+|---|------|--------|------|
+| 1 | SauceDemo — login → add to cart → badge = 1 | Cypress | `e2e/ui/saucedemo.login.cy.ts` |
+| 2 | Network interception during login + product load | Cypress | `e2e/ui/saucedemo.network.cy.ts` |
+| 3 | Reqres `GET /api/users?page=2` — status 200 + data array | Cypress | `e2e/api/reqres.api.cy.ts` |
+| 4 | DemoQA Text Box — fill all fields, submit, validate output | Playwright | `tests/ui/text-box.spec.ts` |
+| 5 | DemoQA Practice Form — 1 positive + 2 negative cases | Playwright | `tests/ui/practice-form.spec.ts` |
+| 6 | JSONPlaceholder `GET /posts` — status 200 + array with `id` | Playwright | `tests/api/posts.api.spec.ts` |
+| 7 | Failure diagnostics: screenshot, trace, video, HTML report | Both | `playwright.config.ts`, `cypress.config.ts` |
 
-Scaling is mostly an *organisation* problem, not a code problem. I'd keep the
-test pyramid in mind: contract / API tests are cheap and fast, so push as much
-coverage there as possible; reserve UI for journeys that cannot be validated
-any other layer. Concretely:
+---
 
-- **Layered architecture** — pages → flows/actions → specs. Specs stay short
-  and behavioural; reusable interaction lives in pages or flow classes;
-  shared API clients are typed and contract-tested.
-- **Tagging and grouping** — `@smoke`, `@critical`, `@regression`, `@flaky`
-  drive different pipelines (PR vs nightly vs on-demand) and let teams run
-  the slice they need.
-- **Test data** — builders / factories per entity, dynamically generated
-  per test, with isolation guarantees (no shared mutable fixtures).
-- **Parallelism & sharding** — Playwright's native sharding
-  (`--shard=1/4`) and Cypress parallel mode across CI workers; aim for
-  total wall-clock under ~10 minutes on PR.
-- **Ownership** — `CODEOWNERS` per test directory; failing tests are routed
-  to the owning team automatically. A flaky test without an owner is a bug.
-- **Reporting** — aggregated dashboard (Allure / custom) with pass-rate,
-  duration trend, and retry-rate per spec, surfaced to engineering leadership.
+## Failure diagnostics
+
+**Cypress** — `screenshotOnRunFailure: true`, `video: true`. Artifacts in `cypress/screenshots/` and `cypress/videos/`. Two retries in run mode.
+
+**Playwright** — `screenshot: 'only-on-failure'`, `trace: 'retain-on-failure'`, `video: 'retain-on-failure'` + HTML report. Two retries in CI. Inspect a trace with:
+```bash
+npx playwright show-trace test-results/<run>/trace.zip
+```
+
+---
+
+## Notes on the test targets
+
+**SauceDemo** is a static SPA with no JSON API. Task 2 intercepts the real HTTP traffic it does generate — JS bundle and product image requests — validating status code and `content-type` at the network layer, independent of UI assertions.
+
+**DemoQA** serves heavy ad iframes that overlap form controls and cause flaky clicks. A Playwright fixture (`playwright/fixtures/test.ts`) aborts ad-network requests at the route layer before each test.
+
+**Reqres.in** requires an API key. The test uses `cy.request` (Node.js-level HTTP client, no CORS), so the key is passed as a header and the test will fail with a clear 401 if it is missing — no silent fallbacks.
+
+---
+
+## Engineering reflection
+
+### 1. How would you scale this to 300+ tests?
+
+The core idea: scale the *pyramid*, not just the suite size.
+
+- **Architecture** — pages → flows/actions → specs. Specs stay short and behavioural; reusable logic lives in page objects or flow classes; API clients are typed and contract-tested separately.
+- **Tagging** — `@smoke`, `@critical`, `@regression`, `@flaky` drive different pipelines. Teams run the slice they own.
+- **Test data** — factories / builders per entity, generated fresh per test. No shared mutable state between tests.
+- **Parallelism** — Playwright sharding (`--shard=1/4`) and Cypress parallel mode across CI workers. Target: full suite under ~10 minutes wall-clock on PR.
+- **Ownership** — `CODEOWNERS` per directory. A failing test with no owner is treated as a bug.
+- **Reporting** — aggregated dashboard (Allure or custom) tracking pass-rate, duration trend, and retry-rate per spec.
 
 ### 2. How would you reduce and monitor flakiness in CI?
 
-The two halves are equally important: prevent flake in the code, and detect
-flake in the data.
+Prevention and detection are equally important — fixing flake without measuring it is guesswork.
 
-- **Prevent**: no fixed waits — only web-first assertions and network-driven
-  waits. Stable selectors (`data-test`, role-based) over CSS/DOM positional
-  selectors. Each test is fully isolated (own state, own user, own data).
-  Third-party noise (ads, analytics) blocked at the network layer.
-- **Detect**: track *retry rate*, not just pass rate. A test that passes on
-  attempt #2 is a defect, even if green. Surface p95 duration, top-10
-  flakiest specs, and pass-rate trends per branch on a dashboard.
-- **Quarantine** — a flaky test moves to a `@flaky` tag with a linked ticket;
-  it still runs in nightly so we collect data, but does not block PRs. The
-  ticket has an SLA. Quarantine without follow-up is rot.
-- **Diagnostics on every failure** — trace, video, screenshot, console + network
-  logs uploaded as CI artifacts. Reproduction should not require local rerun.
+- **Prevent** — no fixed waits; only web-first assertions and network-driven waits. Stable selectors (`data-test`, roles) instead of DOM-positional ones. Full test isolation: each test owns its state, user, and data. Third-party noise (ads, analytics) blocked at the network layer.
+- **Detect** — track *retry rate*, not just pass rate. A test that passes on attempt 2 is a defect. Surface p95 duration and top-10 flakiest specs on a dashboard.
+- **Quarantine** — flaky test gets a `@flaky` tag and a linked ticket with an SLA. It still runs nightly (so data accumulates) but does not block PRs. Quarantine without follow-up is just rot with extra steps.
+- **Diagnostics** — trace, video, screenshot, and console/network logs uploaded as CI artifacts on every failure. Reproduction should never require a local rerun.
 
-### 3. What test strategy would you run on every Pull Request vs nightly runs?
+### 3. PR strategy vs nightly runs
 
-The PR pipeline optimises for *fast signal*; nightly optimises for *broad
-confidence*.
+**Every PR** (target: under 10 minutes) — lint, type-check, API contract tests, `@smoke` + `@critical` UI on Chromium. Fail-fast. Required to merge.
 
-- **On every PR (target: under ~10 minutes)** — lint + type-check, unit tests,
-  API contract tests, Cypress + Playwright `@smoke` and `@critical` UI on a
-  single browser (Chromium). Fail-fast. Required to merge.
-- **Nightly on `main`** — full regression across both runners, cross-browser
-  (Firefox + WebKit), longer-running negative paths (network failures,
-  timeouts, idempotency under retry), visual regression where applicable, and
-  the live third-party integrations that are too noisy for PRs (e.g. the
-  reqres live-mode test). Failures page the on-call test owner.
-- **On-demand** — performance / load tests, security scans, full visual sweep.
+**Nightly on `main`** — full regression on both runners, cross-browser (Firefox + WebKit), longer negative paths (network failures, timeouts, idempotency), visual regression, and live third-party integrations that are too noisy for PRs. Failures page the on-call test owner.
 
-This split keeps the developer feedback loop tight while still maintaining a
-deep regression net.
+**On-demand** — performance/load tests, security scans, full visual sweep.
