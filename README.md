@@ -70,6 +70,8 @@ npm run pw:test       # Playwright headless
 npm run pw:headed     # Playwright headed
 npm run pw:report     # Open HTML report
 
+npm run test:cy       # alias → cy:run
+npm run test:pw       # alias → pw:test
 npm test              # both runners back-to-back
 
 npm run lint:waits    # check for forbidden fixed waits
