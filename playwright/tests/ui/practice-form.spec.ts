@@ -1,16 +1,21 @@
 import { test } from '../../fixtures/test';
-import { PracticeFormPage, PracticeFormData } from '../../pages/PracticeFormPage';
+import {
+  PracticeFormPage,
+  PracticeFormData,
+} from '../../pages/PracticeFormPage';
 
 const validData: PracticeFormData = {
   firstName: 'Alex',
   lastName: 'Turner',
   email: 'alex.turner@testmail.com',
   gender: 'Male',
-  mobile: '7804321567'
+  mobile: '7804321567',
 };
 
 test.describe('DemoQA — Practice Form (positive)', () => {
-  test('submits with all required fields and shows confirmation modal', async ({ page }) => {
+  test('submits with all required fields and shows confirmation modal', async ({
+    page,
+  }) => {
     const form = new PracticeFormPage(page);
     await form.goto();
     await form.fill(validData);
@@ -20,13 +25,15 @@ test.describe('DemoQA — Practice Form (positive)', () => {
 });
 
 test.describe('DemoQA — Practice Form (negative)', () => {
-  test('does not submit when required first/last name are empty', async ({ page }) => {
+  test('does not submit when required first/last name are empty', async ({
+    page,
+  }) => {
     const form = new PracticeFormPage(page);
     await form.goto();
     await form.fill({
       email: validData.email,
       gender: validData.gender,
-      mobile: validData.mobile
+      mobile: validData.mobile,
     });
     await form.submitForm();
     await form.assertModalNotVisible();
@@ -34,7 +41,9 @@ test.describe('DemoQA — Practice Form (negative)', () => {
     await form.assertFieldInvalid('lastName');
   });
 
-  test('does not submit when mobile number has fewer than 10 digits', async ({ page }) => {
+  test('does not submit when mobile number has fewer than 10 digits', async ({
+    page,
+  }) => {
     const form = new PracticeFormPage(page);
     await form.goto();
     await form.fill({ ...validData, mobile: '123' });

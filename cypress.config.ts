@@ -18,9 +18,10 @@ export default defineConfig({
     setupNodeEvents(_on, config) {
       config.env.sauceUsername = process.env.SAUCE_USERNAME || 'standard_user';
       config.env.saucePassword = process.env.SAUCE_PASSWORD || 'secret_sauce';
-      config.env.reqresBaseUrl = process.env.REQRES_BASE_URL || 'https://reqres.in';
+      config.env.reqresBaseUrl =
+        process.env.REQRES_BASE_URL || 'https://reqres.in';
       config.env.reqresApiKey = process.env.REQRES_API_KEY || '';
       return config;
-    }
-  }
+    },
+  },
 });
