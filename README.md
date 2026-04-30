@@ -10,7 +10,7 @@ the suites are designed to be CI-friendly out of the box.
 
 | Concern | Choice |
 | --- | --- |
-| Cypress runner | `cypress@13` (TypeScript) |
+| Cypress runner | `cypress@15` (TypeScript) |
 | Playwright runner | `@playwright/test@1.59` (TypeScript) |
 | Config | `dotenv` → `cypress.config.ts` / `playwright.config.ts` |
 | Structure | Page Objects + Playwright fixtures + typed test data |
@@ -63,11 +63,15 @@ npm run pw:install
 cp .env.example .env
 ```
 
-> **Reqres API key (optional).** Reqres.in introduced a mandatory `x-api-key`
-> header in 2025. The Cypress test (`reqres.api.cy.ts`) hits the live endpoint
-> when `REQRES_API_KEY` is set in `.env`, and falls back to a fixture-based
-> contract assertion otherwise so the suite stays green on any machine. See
-> *Notes on third-party APIs* below for the rationale.
+> **Reqres API key (required).** Reqres.in requires an `x-api-key` header
+> since 2025. Without it the API returns 401 and the Cypress test fails.
+> Get a free key at <https://app.reqres.in/api-keys>, then:
+>
+> - **Local:** add `REQRES_API_KEY=<your_key>` to `.env`
+> - **CI:** add `REQRES_API_KEY` as a GitHub Actions repository secret
+>   *(Settings → Secrets and variables → Actions → New repository secret)*
+>
+> The CI workflow already reads it via `${{ secrets.REQRES_API_KEY }}`.
 
 ## Running tests
 
@@ -148,14 +152,12 @@ variable from your user environment.
   request and a product image asset. Both are validated at the network layer
   (status, content-type, body markers). The same `cy.intercept` pattern
   applies unchanged to a real `/api/inventory` endpoint in production.
-- **Reqres.in changed its access model in 2025** and now requires a per-user
-  API key. The test runs in *live mode* when `REQRES_API_KEY` is set, and
-  falls back to a *fixture mode* that exercises the same contract assertions
-  against a payload mirroring the documented response shape. In a real
-  framework this third-party would be wrapped behind a contract-tested client
-  and replaced with a mock service (WireMock / Mockoon / MSW) for fast,
-  deterministic CI runs, with the live integration covered by a small
-  separate suite running nightly.
+- **Reqres.in** may require an `x-api-key` header depending on their current
+  access policy. The test uses `cy.request` (Node.js-level, no CORS) and
+  passes the key via `Cypress.env('reqresApiKey')` when set. If no key is
+  needed, the request succeeds without one. In a real framework this
+  third-party would be replaced with a mock service (WireMock / Mockoon / MSW)
+  for fast, deterministic CI runs, with live integration in a nightly suite.
 - **DemoQA** loads heavy third-party ad iframes that often overlap form
   controls and cause flaky clicks. A Playwright fixture
   (`playwright/fixtures/test.ts`) aborts ad-network requests at the route
