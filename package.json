@@ -5,7 +5,7 @@
   "description": "Senior QA Automation assignment — Cypress + Playwright (UI, API, network validation, diagnostics).",
   "scripts": {
     "cy:open": "cypress open",
-    "cy:run": "cypress run",
+    "cy:run": "unset ELECTRON_RUN_AS_NODE; cypress run",
     "pw:install": "playwright install --with-deps chromium",
     "pw:test": "playwright test",
     "pw:headed": "playwright test --headed",
