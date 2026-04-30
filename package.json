@@ -1,0 +1,23 @@
+{
+  "name": "qa-automation-assignment",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Senior QA Automation assignment — Cypress + Playwright (UI, API, network validation, diagnostics).",
+  "scripts": {
+    "cy:open": "cypress open",
+    "cy:run": "cypress run",
+    "pw:install": "playwright install --with-deps chromium",
+    "pw:test": "playwright test",
+    "pw:headed": "playwright test --headed",
+    "pw:report": "playwright show-report",
+    "test": "npm run cy:run && npm run pw:test",
+    "lint:waits": "node ./scripts/check-no-hard-waits.js"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.48.0",
+    "@types/node": "^20.12.0",
+    "cypress": "^15.14.2",
+    "dotenv": "^16.4.5",
+    "typescript": "^5.5.4"
+  }
+}
