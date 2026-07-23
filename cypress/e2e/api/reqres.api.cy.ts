@@ -1,4 +1,4 @@
-interface ReqresUser {
+interface DirectoryUser {
   id: number;
   email: string;
   first_name: string;
@@ -6,23 +6,23 @@ interface ReqresUser {
   avatar: string;
 }
 
-interface ReqresUsersResponse {
+interface DirectoryUsersResponse {
   page: number;
   per_page: number;
   total: number;
   total_pages: number;
-  data: ReqresUser[];
+  data: DirectoryUser[];
 }
 
-describe('Reqres API — GET /api/users?page=2', () => {
-  it('returns 200 with a non-empty users array', () => {
+describe('Customer directory API — paginated users', () => {
+  it('returns an authenticated, non-empty user collection with the core contract', () => {
     const baseUrl = Cypress.env('reqresBaseUrl') as string;
     const apiKey = Cypress.env('reqresApiKey') as string;
 
     const headers: Record<string, string> = {};
     if (apiKey) headers['x-api-key'] = apiKey;
 
-    cy.request<ReqresUsersResponse>({
+    cy.request<DirectoryUsersResponse>({
       method: 'GET',
       url: `${baseUrl}/api/users?page=2`,
       headers,
