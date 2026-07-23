@@ -16,12 +16,21 @@ class SauceInventoryPage {
       .click();
   }
 
+  addProductToCart(productName: string): void {
+    cy.contains(this.inventoryItem, productName)
+      .should('be.visible')
+      .within(() => {
+        cy.get(this.addToCartButton).should('be.enabled').click();
+      });
+  }
+
   assertCartBadgeCount(count: number): void {
     cy.get(this.cartBadge).should('have.text', String(count));
   }
 
   openCart(): void {
-    cy.get(this.cartLink).click();
+    cy.get(this.cartLink).should('be.visible').click();
+    cy.url().should('include', '/cart.html');
   }
 }
 
