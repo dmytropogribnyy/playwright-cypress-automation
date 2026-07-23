@@ -1,8 +1,8 @@
 import { sauceLoginPage } from '../../pages/SauceLoginPage';
 import { sauceInventoryPage } from '../../pages/SauceInventoryPage';
 
-describe('SauceDemo — login and add-to-cart flow', () => {
-  it('logs in with valid credentials, adds a product, and shows badge=1', () => {
+describe('Commerce UI — authentication and cart readiness', () => {
+  it('authenticates a valid customer, adds a product, and updates cart state', () => {
     sauceLoginPage.visit();
     sauceLoginPage.login(
       Cypress.env('sauceUsername'),
@@ -14,7 +14,7 @@ describe('SauceDemo — login and add-to-cart flow', () => {
     sauceInventoryPage.assertCartBadgeCount(1);
   });
 
-  it('shows error when password is missing', () => {
+  it('rejects invalid customer credentials with an actionable error', () => {
     sauceLoginPage.visit();
     sauceLoginPage.login(Cypress.env('sauceUsername'), 'wrong_password');
     sauceLoginPage.assertLoginError(/Username and password do not match/i);

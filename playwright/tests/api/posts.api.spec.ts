@@ -1,9 +1,10 @@
 import { expect, request, test } from '@playwright/test';
 
-const BASE_URL = process.env.JSONPLACEHOLDER_BASE_URL || 'https://jsonplaceholder.typicode.com';
+const BASE_URL =
+  process.env.JSONPLACEHOLDER_BASE_URL || 'https://jsonplaceholder.typicode.com';
 
-test.describe('JSONPlaceholder API — /posts', () => {
-  test('GET /posts returns a non-empty array of posts with id', async () => {
+test.describe('Content service API — posts collection', () => {
+  test('returns an available JSON collection with the expected core contract', async () => {
     const apiContext = await request.newContext({ baseURL: BASE_URL });
 
     try {

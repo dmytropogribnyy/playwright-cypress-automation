@@ -12,8 +12,8 @@ const validData: PracticeFormData = {
   mobile: '7804321567',
 };
 
-test.describe('DemoQA — Practice Form (positive)', () => {
-  test('submits with all required fields and shows confirmation modal', async ({
+test.describe('Customer registration — successful submission', () => {
+  test('accepts complete customer data and confirms the submitted values', async ({
     page,
   }) => {
     const form = new PracticeFormPage(page);
@@ -24,8 +24,8 @@ test.describe('DemoQA — Practice Form (positive)', () => {
   });
 });
 
-test.describe('DemoQA — Practice Form (negative)', () => {
-  test('does not submit when required first/last name are empty', async ({
+test.describe('Customer registration — validation controls', () => {
+  test('blocks submission when required identity fields are empty', async ({
     page,
   }) => {
     const form = new PracticeFormPage(page);
@@ -41,7 +41,7 @@ test.describe('DemoQA — Practice Form (negative)', () => {
     await form.assertFieldInvalid('lastName');
   });
 
-  test('does not submit when mobile number has fewer than 10 digits', async ({
+  test('blocks submission when the mobile number has an invalid length', async ({
     page,
   }) => {
     const form = new PracticeFormPage(page);
