@@ -2,7 +2,12 @@
 
 ## Purpose
 
-The pipeline is designed to answer a practical release question: is the change safe enough to merge, and will a failure leave enough evidence for the team to act quickly?
+The pipeline answers two questions:
+
+1. Is the change safe enough to merge?
+2. Will a failure leave enough evidence for the team to act quickly?
+
+The framework separates fast critical-path feedback from supporting regression coverage, then aggregates required results into one explicit release decision.
 
 ## Required pull-request gates
 
@@ -16,56 +21,112 @@ npm run quality
 
 Checks:
 
-- TypeScript compilation with strict settings;
+- strict TypeScript compilation;
 - repository-wide prohibition of fixed waits.
 
-A failure here blocks the browser suites because type and stability-policy violations should be resolved before spending CI time on full execution.
+A failure blocks browser suites because type and stability-policy violations must be resolved before spending CI time on browser execution.
 
-### 2. Cypress coverage
+### 2. Cypress smoke
 
 Command:
 
 ```bash
-npm run cy:run
+npm run cy:smoke
+```
+
+Protects the established purchase baseline:
+
+- valid authentication;
+- named product selection;
+- cart badge and quantity;
+- checkout customer data;
+- order-review product presence;
+- subtotal, tax, and total reconciliation;
+- order confirmation.
+
+Failure evidence:
+
+- screenshot;
+- video;
+- CI logs;
+- job summary.
+
+### 3. Playwright migration-parity smoke
+
+Command:
+
+```bash
+npm run pw:smoke
+```
+
+Protects the same business outcome using the Playwright replacement path. The job is independent of Cypress so a disagreement remains visible.
+
+Failure and review evidence:
+
+- screenshot;
+- retained trace;
+- retained video;
+- HTML report uploaded on success or failure;
+- CI logs;
+- job summary.
+
+### 4. Cypress regression
+
+Command:
+
+```bash
+npm run cy:regression
 ```
 
 Protects:
 
-- authentication;
 - rejected credentials;
-- cart state;
+- missing checkout data;
 - network resource health;
-- Cypress API coverage.
+- Cypress service-contract coverage;
+- supporting commerce UI checks.
 
-Failure evidence:
-
-- screenshots;
-- video;
-- CI logs.
-
-### 3. Playwright coverage
+### 5. Playwright regression
 
 Command:
 
 ```bash
-npm run pw:test
+npm run pw:regression
 ```
 
 Protects:
 
+- missing checkout data;
 - customer-data form behaviour;
-- required-field validation;
-- invalid-format validation;
-- Playwright API coverage;
-- browser diagnostics.
+- required-field and invalid-format validation;
+- Playwright service-contract coverage;
+- browser diagnostics outside the smoke slice.
 
-Failure evidence:
+### 6. Release decision
 
-- screenshots;
-- trace;
-- video;
-- HTML report;
-- CI logs.
+The final job runs even when an upstream gate fails. It writes a table of required results to the GitHub Actions summary and exits unsuccessfully unless every required gate is green.
+
+Required inputs:
+
+- quality policy;
+- Cypress smoke;
+- Playwright parity smoke;
+- Cypress regression;
+- Playwright regression.
+
+The final output is explicitly either:
+
+```text
+Release decision: PASS
+```
+
+or:
+
+```text
+Release decision: BLOCKED
+```
+
+This avoids treating a partially green workflow as release approval.
 
 ## Local release check
 
@@ -75,27 +136,34 @@ Before opening a pull request:
 npm run verify
 ```
 
-This runs the quality policy followed by both automation runners.
+This runs the quality policy, Cypress smoke and regression, and Playwright smoke and regression on Chromium.
 
-## Scheduled regression
+## Scheduled and manual cross-browser gate
 
-The workflow runs on weekday schedules in addition to pull requests and pushes. Scheduled execution is useful for detecting:
+Scheduled and manually dispatched workflows additionally execute:
 
-- public target drift;
-- dependency or browser changes;
-- environmental instability;
-- failures that are independent of a repository change.
+```bash
+npm run pw:cross-browser
+```
 
-A scheduled failure is investigated separately from a change-induced pull-request failure. Public targets are external dependencies and may change without notice.
+The critical Playwright journey runs on:
+
+- Chromium;
+- Firefox;
+- WebKit.
+
+This layer detects browser-specific behaviour, dependency changes, and public-target drift without increasing normal pull-request feedback time.
 
 ## Merge policy
 
-A change is considered merge-ready when:
+A change is merge-ready when:
 
-- all required CI jobs pass;
+- every required gate passes;
+- the final release decision is `PASS`;
 - no test is disabled to obtain a green build;
-- retries are reviewed when they hide a first-attempt failure;
-- new behaviour includes the appropriate layer of coverage;
+- retry-only passes are reviewed as potential flakiness;
+- new release-blocking behaviour is mapped in `TRACEABILITY.md`;
+- migration changes preserve or explicitly replace existing risk coverage;
 - failure evidence remains available and actionable;
 - environment-specific values are not committed as secrets.
 
@@ -105,10 +173,11 @@ Classify a failed gate before changing the test:
 
 | Category | Example | Response |
 |---|---|---|
-| Product defect | Cart state is not updated | Preserve evidence and raise a defect |
-| Automation defect | Selector no longer represents intent | Repair the automation and add regression protection |
-| Environment defect | Public target unavailable | Record dependency failure; do not weaken assertions silently |
+| Product defect | Cart state or checkout result is wrong | Preserve evidence and raise a defect |
+| Automation defect | Locator no longer represents intent | Repair automation and add regression protection |
+| Migration mismatch | Cypress and Playwright disagree | Compare business outcomes and evidence before promotion |
+| Environment defect | Public target is unavailable | Record dependency failure; do not weaken assertions silently |
 | Test-data defect | Shared account or state collision | Isolate or regenerate data |
-| Flaky behaviour | Passes only on retry | Investigate timing, ownership, and dependency signals |
+| Flaky behaviour | Scenario passes only on retry | Investigate timing, ownership, and dependency signals |
 
-The default response is never to add a fixed wait or remove the assertion that exposed the risk.
+The default response is never to add a fixed wait, remove the assertion that exposed the risk, or claim release confidence from only one side of the migration proof.
