@@ -35,8 +35,15 @@ jobs:
       - name: Verify TypeScript and no-hard-waits policy
         run: npm run quality
 
-  cypress:
-    name: Cypress (commerce UI + API + network)
+      - name: Publish quality summary
+        if: always()
+        run: |
+          echo "## Quality policy" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Strict TypeScript: ${{ job.status }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Fixed-wait policy: ${{ job.status }}" >> "$GITHUB_STEP_SUMMARY"
+
+  cypress-smoke:
+    name: Cypress smoke (critical purchase journey)
     needs: quality
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -51,24 +58,29 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Run Cypress coverage
-        run: npm run cy:run
-        env:
-          REQRES_API_KEY: ${{ secrets.REQRES_API_KEY }}
+      - name: Run Cypress critical path
+        run: npm run cy:smoke
 
       - name: Upload Cypress evidence on failure
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: cypress-failure-evidence
+          name: cypress-smoke-failure-evidence
           path: |
             cypress/screenshots
             cypress/videos
           if-no-files-found: ignore
           retention-days: 7
 
-  playwright:
-    name: Playwright (forms + API + diagnostics)
+      - name: Publish smoke summary
+        if: always()
+        run: |
+          echo "## Cypress smoke" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Journey: authentication → product → cart → checkout → confirmation" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Result: ${{ job.status }}" >> "$GITHUB_STEP_SUMMARY"
+
+  playwright-smoke:
+    name: Playwright smoke (migration parity)
     needs: quality
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -86,16 +98,177 @@ jobs:
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
 
-      - name: Run Playwright coverage
-        run: npm run pw:test
+      - name: Run Playwright migration-parity smoke
+        run: npm run pw:smoke
 
-      - name: Upload Playwright evidence on failure
+      - name: Upload Playwright HTML report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-smoke-report
+          path: playwright-report
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Upload Playwright failure evidence
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-failure-evidence
+          name: playwright-smoke-failure-evidence
+          path: test-results
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Publish smoke summary
+        if: always()
+        run: |
+          echo "## Playwright migration parity" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Critical journey parity with Cypress baseline" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Browser: Chromium" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Result: ${{ job.status }}" >> "$GITHUB_STEP_SUMMARY"
+
+  cypress-regression:
+    name: Cypress regression (UI + API + network)
+    needs: cypress-smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Cypress regression slice
+        run: npm run cy:regression
+        env:
+          REQRES_API_KEY: ${{ secrets.REQRES_API_KEY }}
+
+      - name: Upload Cypress evidence on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cypress-regression-failure-evidence
+          path: |
+            cypress/screenshots
+            cypress/videos
+          if-no-files-found: ignore
+          retention-days: 7
+
+  playwright-regression:
+    name: Playwright regression (forms + API + diagnostics)
+    needs: playwright-smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run Playwright regression slice
+        run: npm run pw:regression
+
+      - name: Upload Playwright HTML report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-regression-report
+          path: playwright-report
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Upload Playwright failure evidence
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-regression-failure-evidence
+          path: test-results
+          if-no-files-found: ignore
+          retention-days: 7
+
+  cross-browser:
+    name: Scheduled cross-browser critical path
+    if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
+    needs: playwright-smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Chromium Firefox and WebKit
+        run: npx playwright install --with-deps chromium firefox webkit
+
+      - name: Run critical journey across browsers
+        run: npm run pw:cross-browser
+
+      - name: Upload cross-browser report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-cross-browser-report
           path: |
             playwright-report
             test-results
           if-no-files-found: ignore
           retention-days: 7
+
+  release-decision:
+    name: Release decision
+    if: always()
+    needs:
+      - quality
+      - cypress-smoke
+      - playwright-smoke
+      - cypress-regression
+      - playwright-regression
+    runs-on: ubuntu-latest
+    steps:
+      - name: Publish release confidence
+        shell: bash
+        run: |
+          echo "## Release confidence" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Gate | Result |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|---|---|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Quality policy | ${{ needs.quality.result }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Cypress smoke | ${{ needs.cypress-smoke.result }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Playwright parity smoke | ${{ needs.playwright-smoke.result }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Cypress regression | ${{ needs.cypress-regression.result }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Playwright regression | ${{ needs.playwright-regression.result }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" >> "$GITHUB_STEP_SUMMARY"
+
+          required=(
+            "${{ needs.quality.result }}"
+            "${{ needs.cypress-smoke.result }}"
+            "${{ needs.playwright-smoke.result }}"
+            "${{ needs.cypress-regression.result }}"
+            "${{ needs.playwright-regression.result }}"
+          )
+          for result in "${required[@]}"; do
+            if [[ "$result" != "success" ]]; then
+              echo "Release decision: BLOCKED" >> "$GITHUB_STEP_SUMMARY"
+              exit 1
+            fi
+          done
+          echo "Release decision: PASS" >> "$GITHUB_STEP_SUMMARY"
