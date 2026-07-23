@@ -1,8 +1,8 @@
 import { test, expect } from '../../fixtures/test';
 import { TextBoxPage, TextBoxData } from '../../pages/TextBoxPage';
 
-test.describe('DemoQA — Text Box form', () => {
-  test('submits the form and renders all values in the output', async ({
+test.describe('Customer profile — contact and address details', () => {
+  test('submits customer details and renders the confirmed values', async ({
     page,
   }) => {
     const data: TextBoxData = {
@@ -18,7 +18,7 @@ test.describe('DemoQA — Text Box form', () => {
     await textBox.assertSubmittedValues(data);
   });
 
-  test('does not render output when form has not been submitted', async ({
+  test('does not expose a confirmation state before submission', async ({
     page,
   }) => {
     const textBox = new TextBoxPage(page);
