@@ -1,8 +1,8 @@
 {
-  "name": "qa-automation-assignment",
+  "name": "northstar-commerce-quality-framework",
   "version": "1.0.0",
   "private": true,
-  "description": "Senior QA Automation assignment — Cypress + Playwright (UI, API, network validation, diagnostics).",
+  "description": "Production-oriented e-commerce quality automation across UI, API, network, CI, and failure diagnostics.",
   "scripts": {
     "cy:open": "cypress open",
     "cy:run": "node scripts/cypress-run.js",
@@ -13,7 +13,10 @@
     "test:cy": "npm run cy:run",
     "test:pw": "npm run pw:test",
     "test": "npm run cy:run && npm run pw:test",
-    "lint:waits": "node ./scripts/check-no-hard-waits.js"
+    "typecheck": "tsc --noEmit",
+    "lint:waits": "node ./scripts/check-no-hard-waits.js",
+    "quality": "npm run typecheck && npm run lint:waits",
+    "verify": "npm run quality && npm test"
   },
   "devDependencies": {
     "@playwright/test": "^1.59.1",
