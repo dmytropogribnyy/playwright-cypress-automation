@@ -34,7 +34,7 @@ class PurchaseFlow {
     return sauceCheckoutPage.readOrderAmounts().then((amounts) => {
       sauceCheckoutPage.finishOrder();
       sauceCheckoutPage.assertOrderComplete();
-      return amounts;
+      return cy.then(() => amounts);
     });
   }
 }
