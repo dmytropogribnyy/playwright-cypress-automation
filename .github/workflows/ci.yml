@@ -1,4 +1,4 @@
-name: CI
+name: Quality pipeline
 
 on:
   push:
@@ -6,14 +6,38 @@ on:
   pull_request:
     branches: [main, master]
   workflow_dispatch:
+  schedule:
+    - cron: '17 3 * * 1-5'
+
+permissions:
+  contents: read
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
+  quality:
+    name: Quality policy (types + stability rules)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Verify TypeScript and no-hard-waits policy
+        run: npm run quality
+
   cypress:
-    name: Cypress (UI + API + Network)
+    name: Cypress (commerce UI + API + network)
+    needs: quality
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -27,16 +51,16 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Run Cypress
+      - name: Run Cypress coverage
         run: npm run cy:run
         env:
           REQRES_API_KEY: ${{ secrets.REQRES_API_KEY }}
 
-      - name: Upload Cypress artifacts on failure
+      - name: Upload Cypress evidence on failure
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: cypress-artifacts
+          name: cypress-failure-evidence
           path: |
             cypress/screenshots
             cypress/videos
@@ -44,7 +68,8 @@ jobs:
           retention-days: 7
 
   playwright:
-    name: Playwright (UI + API + Diagnostics)
+    name: Playwright (forms + API + diagnostics)
+    needs: quality
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -58,17 +83,17 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Install Playwright browsers
+      - name: Install Chromium
         run: npx playwright install --with-deps chromium
 
-      - name: Run Playwright
+      - name: Run Playwright coverage
         run: npm run pw:test
 
-      - name: Upload Playwright report on failure
+      - name: Upload Playwright evidence on failure
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-report
+          name: playwright-failure-evidence
           path: |
             playwright-report
             test-results
