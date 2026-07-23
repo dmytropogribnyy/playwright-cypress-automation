@@ -1,102 +1,202 @@
 # Northstar Commerce Quality Framework
 
-[![CI](https://github.com/dmytropogribnyy/playwright-cypress-automation/actions/workflows/ci.yml/badge.svg)](https://github.com/dmytropogribnyy/playwright-cypress-automation/actions/workflows/ci.yml)
+[![Quality pipeline](https://github.com/dmytropogribnyy/playwright-cypress-automation/actions/workflows/ci.yml/badge.svg)](https://github.com/dmytropogribnyy/playwright-cypress-automation/actions/workflows/ci.yml)
+![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6)
+![Playwright](https://img.shields.io/badge/Playwright-1.59-2EAD33)
+![Cypress](https://img.shields.io/badge/Cypress-15-17202C)
 
-A production-oriented web quality automation framework for protecting critical commerce journeys across **UI, API, and network layers**.
+**Release assurance for a commerce product, with a controlled Cypress-to-Playwright migration.**
 
-Built with **Playwright, Cypress, TypeScript, and GitHub Actions**, the framework demonstrates how I structure release assurance for a web product: business-risk-driven coverage, stable automation patterns, environment-based configuration, fast CI feedback, and failure evidence that engineers can act on without rerunning tests locally.
+Northstar protects the customer journey from authentication through order confirmation across UI, API, and network layers. It combines fast pull-request feedback, full regression gates, cross-browser scheduled coverage, financial invariants, and failure evidence designed for remote triage.
 
-> **Portfolio context:** the framework is publicly shareable and executable. Public sandbox applications are used as replaceable test targets so the architecture, quality gates, and diagnostics can be reviewed without exposing proprietary product code, customer data, credentials, or private infrastructure.
+> Public execution targets make the complete implementation safe to review and run without exposing proprietary source code, customer data, credentials, or private infrastructure. The delivery model, architecture, release gates, and migration controls are designed as they would be for a client engagement.
 
 ---
 
-## Business context
+## Executive snapshot
 
-The framework models the quality baseline needed by an e-commerce team increasing release frequency while keeping critical customer journeys protected.
-
-The initial delivery focuses on risks that commonly block or damage a release:
-
-| Product risk | Automated response |
+| Capability | Delivered |
 |---|---|
-| Customers cannot authenticate | Positive and negative login coverage |
-| A product cannot be added to the cart | Critical commerce-path UI validation |
-| The interface looks healthy while required resources fail | Network response and content-type checks |
-| Forms accept incomplete or invalid customer data | Positive and negative validation scenarios |
-| An API changes shape or availability | Contract-oriented status and payload assertions |
-| A CI failure is difficult to reproduce | Screenshot, video, trace, and HTML-report evidence |
-| Timing-based tests become flaky | Web-first assertions, stable selectors, and a no-hard-waits gate |
+| Critical purchase journey | Login → product → cart → checkout → order confirmation |
+| Business invariant | Order subtotal + tax must equal displayed total |
+| Negative coverage | Invalid login, missing checkout data, form validation |
+| Migration proof | Same critical journey implemented in Cypress and Playwright |
+| PR feedback | Strict TypeScript, stability policy, smoke parity, regression suites |
+| Scheduled confidence | Playwright critical path on Chromium, Firefox, and WebKit |
+| Failure evidence | Screenshots, video, Playwright trace, HTML reports, CI summaries |
+| Operational decision | Final `Release decision` gate blocks when any required control fails |
 
-This is deliberately a compact framework: the goal is to show sound engineering decisions and a maintainable delivery model rather than inflate the repository with repetitive test cases.
+The suite is intentionally compact. It demonstrates a maintainable quality operating model rather than inflating the repository with repetitive checks.
 
 ---
 
-## Delivery scope
+## Business problem
+
+A commerce team increasing release frequency needs to answer five practical questions before merging:
+
+1. Can a customer authenticate?
+2. Can a product move through cart and checkout to confirmation?
+3. Are required data and financial totals validated correctly?
+4. Did dependent resources or service contracts drift?
+5. Will a failure leave enough evidence to act without reproducing it locally?
+
+Northstar maps those risks to executable controls:
+
+| Risk | Automated control |
+|---|---|
+| Authentication is unavailable | Positive critical path and rejected-credential regression |
+| Cart state is lost | Named product and quantity assertions |
+| Checkout is blocked or accepts incomplete data | Complete purchase flow plus negative field validation |
+| Order totals are inconsistent | `subtotal + tax = total` reconciliation in both runners |
+| Required resources fail silently | Network status and content-type validation |
+| API contracts become unusable | Typed payload and required-property assertions |
+| Timing workarounds create flakiness | Repository-wide no-fixed-waits gate |
+| CI failures are hard to diagnose | Screenshots, video, trace, reports, artifacts, and job summaries |
+
+Full mapping: [Risk and coverage traceability](docs/TRACEABILITY.md).
+
+---
+
+## Delivery architecture
+
+```mermaid
+flowchart LR
+    Change[Pull request] --> Policy[Quality policy\nstrict types + no fixed waits]
+    Policy --> CSmoke[Cypress critical journey]
+    Policy --> PSmoke[Playwright parity journey]
+    CSmoke --> CReg[Cypress UI / API / network regression]
+    PSmoke --> PReg[Playwright UI / API regression]
+    CReg --> Decision[Release decision]
+    PReg --> Decision
+    Schedule[Scheduled or manual run] --> Cross[Chromium / Firefox / WebKit\ncritical path]
+
+    Intent[Business risks and acceptance signals] --> CFlow[Cypress PurchaseFlow]
+    Intent --> PFlow[Playwright PurchaseFlow]
+    CFlow --> CPages[Page models]
+    PFlow --> PPages[Page models]
+    CPages --> Targets[Replaceable public execution targets]
+    PPages --> Targets
+```
+
+The framework separates:
+
+- **business intent** — risks, acceptance signals, and critical flows;
+- **domain flows** — reusable purchase orchestration above page-level mechanics;
+- **page models** — selectors and page interactions;
+- **execution profiles** — smoke, regression, and cross-browser slices;
+- **release controls** — required CI gates, evidence, and a final decision job.
+
+---
+
+## Cypress-to-Playwright migration proof
+
+The two runners are not presented as permanent duplication. They model a controlled modernization of an existing Cypress estate.
+
+The same release-blocking commerce path now runs in both:
+
+```text
+Valid authentication
+→ select Sauce Labs Backpack
+→ verify cart quantity
+→ provide checkout data
+→ verify product in order review
+→ reconcile subtotal, tax, and total
+→ finish order
+→ verify confirmation
+```
+
+### Why dual-run temporarily?
+
+- Cypress preserves the established baseline and existing network/API coverage.
+- Playwright proves equivalent business outcomes with richer tracing and cross-browser capability.
+- Independent CI jobs expose disagreements instead of allowing a rewrite to silently reduce coverage.
+- Retirement criteria are explicit, so migration does not become indefinite duplicate maintenance.
+
+Detailed strategy: [Cypress to Playwright migration](docs/MIGRATION_STRATEGY.md).
+
+---
+
+## Current executable coverage
+
+| Risk area | Cypress | Playwright |
+|---|---|---|
+| Valid authentication | Critical smoke | Migration-parity smoke |
+| Invalid authentication | Regression | Planned parity increment |
+| Product selection and cart state | Critical smoke | Migration-parity smoke |
+| Complete checkout | Critical smoke | Migration-parity smoke |
+| Order-total reconciliation | Critical smoke | Migration-parity smoke |
+| Missing postal code | Regression | Regression |
+| Network resource health | Regression | Not duplicated |
+| User-service API | Regression | Not duplicated |
+| Content-service API | Not duplicated | Regression |
+| Customer form validation | Not duplicated | Regression |
+| Cross-browser critical path | Not applicable | Scheduled/manual Chromium, Firefox, WebKit |
+
+Unique runner value is preserved where duplication would add little confidence. Critical migration parity is required where a regression would directly block revenue flow.
+
+---
+
+## CI quality model
+
+### Required pull-request gates
+
+| Gate | Purpose |
+|---|---|
+| Quality policy | Strict TypeScript and no fixed waits |
+| Cypress smoke | Established critical purchase baseline |
+| Playwright smoke | Migration parity for the same customer outcome |
+| Cypress regression | Authentication, checkout validation, network, and API controls |
+| Playwright regression | Commerce validation, customer forms, API, and diagnostics |
+| Release decision | Aggregates required results and blocks when any gate is not green |
+
+### Scheduled and manual confidence
+
+Scheduled and manually dispatched workflows additionally run the critical Playwright journey across:
+
+- Chromium;
+- Firefox;
+- WebKit.
+
+This keeps pull requests fast while still detecting browser-specific behaviour and external target drift.
+
+### Operator-facing result
+
+Every workflow produces a GitHub Actions summary containing:
+
+- gate results;
+- the protected journey;
+- browser scope;
+- a direct run link;
+- a final `PASS` or `BLOCKED` release decision.
+
+More detail: [Release gates](docs/RELEASE_GATES.md).
+
+---
+
+## Failure diagnostics
 
 ### Cypress
 
-- Commerce login and add-to-cart journey
-- Negative authentication behaviour
-- Network interception during authentication and inventory loading
-- API validation through a Node-level HTTP client
-- Screenshots and video on failure
-- CI retries for diagnostic signal, not as a substitute for stability
+- screenshot on failure;
+- video recording;
+- CI logs;
+- separate smoke and regression evidence packages.
 
 ### Playwright
 
-- Customer-data form submission
-- Required-field and format validation
-- Text-entry workflow validation
-- API response checks
-- Route-level blocking of third-party ad noise
-- Screenshot, trace, video, and HTML report on failure
+- screenshot on failure;
+- retained trace on failure;
+- retained video on failure;
+- HTML report uploaded for successful and failed smoke/regression runs;
+- cross-browser report on scheduled/manual execution.
 
-### Shared engineering standards
+Inspect a trace locally:
 
-- TypeScript with strict compiler settings
-- Page Object separation
-- Typed test data
-- Environment-driven configuration
-- No fixed waits
-- Parallel-capable execution
-- Independent Cypress and Playwright CI jobs
-- Actionable failure artifacts
-
----
-
-## Architecture
-
-```text
-                    ┌──────────────────────────┐
-                    │       Test intent        │
-                    │ business risks / flows   │
-                    └────────────┬─────────────┘
-                                 │
-                 ┌───────────────┴───────────────┐
-                 │                               │
-        ┌────────▼────────┐             ┌────────▼────────┐
-        │ Cypress suites  │             │ Playwright      │
-        │ UI / network /  │             │ UI / API /      │
-        │ API             │             │ diagnostics     │
-        └────────┬────────┘             └────────┬────────┘
-                 │                               │
-        ┌────────▼────────┐             ┌────────▼────────┐
-        │ Page Objects &  │             │ Fixtures, Page  │
-        │ environment     │             │ Objects & config│
-        └────────┬────────┘             └────────┬────────┘
-                 └───────────────┬───────────────┘
-                                 │
-                    ┌────────────▼─────────────┐
-                    │ GitHub Actions quality  │
-                    │ gates + failure evidence│
-                    └──────────────────────────┘
+```bash
+npx playwright show-trace test-results/<run>/trace.zip
 ```
 
-The execution targets are adapters around the framework. In a commercial environment, product URLs, selectors, API clients, authentication, and test-data providers change; the quality strategy, layering, CI model, and diagnostic approach remain reusable.
-
-More detail:
-
-- [Quality strategy](docs/QUALITY_STRATEGY.md)
-- [Release gates](docs/RELEASE_GATES.md)
+The operational standard is that a failure should answer what broke, what the system returned, and what evidence is available before anyone reruns the scenario locally.
 
 ---
 
@@ -105,24 +205,26 @@ More detail:
 ```text
 cypress/
   e2e/
-    api/       reqres.api.cy.ts
-    ui/        saucedemo.login.cy.ts
-               saucedemo.network.cy.ts
-  pages/       SauceLoginPage.ts
-               SauceInventoryPage.ts
+    smoke/      commerce-checkout.cy.ts
+    ui/         authentication, checkout validation, network
+    api/        service contract coverage
+  flows/        PurchaseFlow.ts
+  pages/        login, inventory, cart, checkout page models
 
 playwright/
-  fixtures/    test.ts
-  pages/       TextBoxPage.ts
-               PracticeFormPage.ts
   tests/
-    api/       posts.api.spec.ts
-    ui/        text-box.spec.ts
-               practice-form.spec.ts
+    commerce/   checkout.spec.ts
+    ui/         customer form coverage
+    api/        service contract coverage
+  flows/        PurchaseFlow.ts
+  pages/        commerce and form page models
+  fixtures/     route-level environmental controls
 
 docs/
   QUALITY_STRATEGY.md
   RELEASE_GATES.md
+  MIGRATION_STRATEGY.md
+  TRACEABILITY.md
 
 .github/workflows/ci.yml
 scripts/check-no-hard-waits.js
@@ -131,165 +233,89 @@ scripts/cypress-run.js
 
 ---
 
-## Quality gates
+## Run locally
 
-The repository exposes one local verification command:
+### Prerequisites
 
-```bash
-npm run verify
-```
-
-It runs:
-
-1. TypeScript compilation checks
-2. The no-hard-waits policy
-3. Cypress coverage
-4. Playwright coverage
-
-GitHub Actions separates the pipeline into:
-
-- **Quality policy** — type checking and stability rules
-- **Cypress** — UI, API, and network coverage
-- **Playwright** — UI, API, and diagnostic coverage
-
-A pull request is considered releasable only when all required jobs pass.
-
----
-
-## Failure diagnostics
-
-### Cypress
-
-- Screenshot on failure
-- Video recording
-- Two retries in CI/run mode
-- Uploaded CI artifacts when a job fails
-
-### Playwright
-
-- Screenshot only on failure
-- Retained trace on failure
-- Retained video on failure
-- HTML report
-- Uploaded report and test results when a job fails
-
-Inspect a Playwright trace locally:
+- Node.js 22;
+- a Reqres API key for the authenticated Cypress API scenario.
 
 ```bash
-npx playwright show-trace test-results/<run>/trace.zip
-```
-
-The diagnostic goal is simple: a failed pipeline should provide enough evidence for an engineer to understand the failure without first reproducing it on a workstation.
-
----
-
-## Setup
-
-```bash
-npm install
+npm ci
 npm run pw:install
 cp .env.example .env
-npm run quality
 ```
 
-### Environment configuration
+Set `REQRES_API_KEY` in `.env`. Other public execution-target values have documented defaults.
+
+### Commands
+
+```bash
+# Static quality policy
+npm run quality
+
+# Fast critical paths
+npm run cy:smoke
+npm run pw:smoke
+npm run test:smoke
+
+# Supporting regression slices
+npm run cy:regression
+npm run pw:regression
+
+# Chromium release verification
+npm run verify
+
+# Critical Playwright path on all configured browsers
+npm run pw:cross-browser
+
+# Interactive development
+npm run cy:open
+npm run pw:headed
+npm run pw:report
+```
+
+---
+
+## Environment configuration
 
 | Variable | Purpose | Default |
 |---|---|---|
-| `SAUCE_BASE_URL` | Commerce UI target | `https://www.saucedemo.com` |
-| `SAUCE_USERNAME` | Test user | `standard_user` |
+| `SAUCE_BASE_URL` | Commerce execution target | `https://www.saucedemo.com` |
+| `SAUCE_USERNAME` | Dedicated test user | `standard_user` |
 | `SAUCE_PASSWORD` | Test password | `secret_sauce` |
-| `DEMOQA_BASE_URL` | Form-validation target | `https://demoqa.com` |
-| `REQRES_BASE_URL` | Cypress API target | `https://reqres.in` |
-| `REQRES_API_KEY` | Reqres authentication | Required for that API check |
+| `DEMOQA_BASE_URL` | Supporting form target | `https://demoqa.com` |
+| `REQRES_BASE_URL` | Cypress service target | `https://reqres.in` |
+| `REQRES_API_KEY` | Reqres authentication | Required for that scenario |
+| `JSONPLACEHOLDER_BASE_URL` | Playwright service target | `https://jsonplaceholder.typicode.com` |
 
-Reqres requires an `x-api-key` header. Store the value in `.env` locally and as a GitHub Actions repository secret in CI. The test fails clearly when authentication is unavailable; there is no silent fallback.
-
----
-
-## Running the framework
-
-```bash
-# Complete local release check
-npm run verify
-
-# Quality policy only
-npm run quality
-
-# Cypress
-npm run cy:run
-npm run cy:open
-
-# Playwright
-npm run pw:test
-npm run pw:headed
-npm run pw:report
-
-# Both runners
-npm test
-```
+Secrets belong in the local environment or GitHub Actions secret store. The framework does not silently downgrade authenticated coverage when a required key is missing.
 
 ---
 
-## Engineering decisions
+## Engineering standards
 
-### Why two runners?
+- strict TypeScript compilation;
+- no fixed sleeps or hard waits;
+- stable, intent-revealing selectors;
+- Page Objects for mechanics and domain flows for business journeys;
+- isolated, repeatable scenarios;
+- named product assertions instead of positional assumptions;
+- financial invariant validation instead of page-presence checks alone;
+- independent smoke parity during migration;
+- retries treated as diagnostic evidence, not as proof of stability;
+- failure evidence retained through CI artifacts;
+- every release-blocking scenario mapped to a documented risk.
 
-The framework shows deliberate tool selection rather than treating one runner as universally superior:
-
-- Cypress provides productive browser workflow development, network interception, and direct API requests.
-- Playwright provides strong cross-browser architecture, fixtures, tracing, isolated browser contexts, and rich diagnostics.
-
-In a real engagement I would normally standardize on the runner that best fits the product, team, and delivery constraints. This repository keeps both to demonstrate migration, comparison, and mixed-estate support.
-
-### Why block third-party ads in Playwright?
-
-The form target serves advertising iframes that can overlap controls and create failures unrelated to the product behaviour under test. A route fixture blocks known ad-network traffic before each test. This keeps the suite focused on product risk while making the environmental workaround visible and reviewable.
-
-### Why validate network resources in the commerce flow?
-
-The selected public commerce target is a client-side application without a product JSON API. The network scenario therefore verifies real bundle and product-image responses. In a private product this layer would typically bind to inventory, pricing, cart, or session endpoints while retaining the same interception and assertion pattern.
+Quality rationale: [Quality strategy](docs/QUALITY_STRATEGY.md).
 
 ---
 
-## Current coverage
-
-| Area | Runner | Coverage |
-|---|---|---|
-| Authentication | Cypress | Valid login and rejected credentials |
-| Cart | Cypress | Add first product and verify cart state |
-| Network | Cypress | Bundle and product-resource responses |
-| API | Cypress | Authenticated users endpoint response |
-| Customer details | Playwright | Text-entry submission and rendered output |
-| Registration form | Playwright | Positive submission and negative validation |
-| API | Playwright | Posts collection status and payload structure |
-| Diagnostics | Both | Screenshots, video, trace, and reports |
-
----
-
-## Scaling path
-
-For a larger product, the next increments would be:
-
-- domain-level flow objects above Page Objects
-- typed API clients and schema validation
-- test-data builders and isolated data provisioning
-- `@smoke`, `@critical`, and `@regression` execution slices
-- Playwright sharding and Cypress parallel workers
-- cross-browser nightly regression
-- retry-rate and duration-trend reporting
-- explicit ownership through `CODEOWNERS`
-- visual regression for stable high-value surfaces
-
-The strategy is to scale the test pyramid and feedback model—not only the number of UI specifications.
-
----
-
-## Known boundaries
+## Explicit boundaries
 
 - Public targets can change without notice and are not controlled by this repository.
-- The suite is intentionally compact and does not represent complete commerce coverage.
-- No production customer data or proprietary application code is included.
-- Performance, accessibility, security, and visual testing are natural extensions but are outside the current executable scope.
+- The executable scope is a focused release-assurance slice, not complete e-commerce coverage.
+- No production customer data, proprietary application code, private credentials, or invented outcome metrics are included.
+- Performance, accessibility, visual regression, security testing, and production test-data provisioning remain separate expansion tracks.
 
-These boundaries are explicit so the repository remains credible: it demonstrates how the solution is engineered, what it protects today, and what would be added for a broader product engagement.
+The purpose of the repository is to make engineering quality visible: what is protected, why it matters, how a migration is controlled, what blocks a release, and what evidence is available when something fails.

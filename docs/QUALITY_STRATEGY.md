@@ -2,46 +2,85 @@
 
 ## Objective
 
-Provide fast, trustworthy release feedback for critical web-commerce behaviour while keeping the automation maintainable, diagnosable, and safe to run in CI.
+Provide fast, trustworthy release feedback for the critical commerce journey while keeping the automation maintainable, diagnosable, and safe to evolve from Cypress to Playwright.
 
-The framework is intentionally risk-driven. It does not aim to automate every visible interaction. It protects the workflows whose failure would most directly block a customer, hide a broken dependency, or slow incident investigation.
+Northstar is risk-driven. It does not automate every visible interaction. It protects behaviours whose failure would block a customer, corrupt an order decision, hide a broken dependency, or make incident investigation unnecessarily expensive.
 
 ## Quality risks
 
-| Risk | Impact | Current control |
+| Risk | Impact | Executable control |
 |---|---|---|
-| Authentication failure | Customers cannot enter the product | Positive and negative login scenarios |
-| Cart-state failure | A core purchase journey is blocked | Add-to-cart flow and cart badge assertion |
+| Authentication failure | Customers cannot enter the product | Positive critical path and rejected-credential regression |
+| Cart-state failure | The purchase journey is blocked | Named product, badge, and quantity assertions |
+| Checkout failure | Revenue flow cannot complete | End-to-end confirmation journey in both runners |
+| Invalid customer data accepted | Downstream processing and support risk | Missing-field and format validation |
+| Financial inconsistency | Displayed order total cannot be trusted | Subtotal + tax = total invariant in both runners |
 | Resource or dependency failure | UI may load partially or misleadingly | Network status and content-type validation |
-| Invalid customer data accepted | Downstream processing and support risk | Required-field and format validation |
-| API contract drift | Consumers receive unusable responses | Status and payload-shape assertions |
+| API contract drift | Consumers receive unusable responses | Status, type, collection, and required-property assertions |
 | Environmental UI noise | False failures reduce trust in CI | Third-party ad traffic blocked at route level |
-| Timing-based flakiness | Unstable release decisions | No fixed waits; web-first assertions |
-| Weak diagnostics | Failures require expensive local reproduction | Trace, video, screenshot, and HTML report |
+| Timing-based flakiness | Release decisions become unstable | No fixed waits; web-first assertions |
+| Weak diagnostics | Failures require local reproduction | Trace, video, screenshot, report, and CI summaries |
+| Migration coverage loss | Tool modernization silently removes protection | Independent Cypress baseline and Playwright parity smoke |
+
+Risk-to-test ownership is maintained in `TRACEABILITY.md`.
 
 ## Test layers
 
-### UI journeys
+### Domain flows
 
-UI tests are reserved for behaviour that must be proven through the browser: authentication, cart state, form validation, and rendered confirmation.
+`PurchaseFlow` represents the business journey above individual pages. It coordinates authentication, product selection, cart verification, checkout, financial reconciliation, and confirmation.
+
+Both Cypress and Playwright expose the same business intent while retaining runner-appropriate mechanics. This makes migration comparison meaningful without forcing identical implementation code.
+
+### Page models
+
+Page models own selectors and local interactions. Tests and flows should not duplicate selector knowledge.
 
 Principles:
 
-- assert user-visible outcomes, not implementation details;
-- keep selectors stable and intent-revealing;
-- isolate reusable interaction logic in Page Objects;
-- avoid shared mutable state;
-- use browser-native waiting and web-first assertions.
+- use stable `data-test` attributes and role-based locators;
+- assert user-visible outcomes rather than CSS structure;
+- select products by business name rather than list position;
+- keep navigation expectations close to the action that triggers them;
+- avoid shared mutable state between scenarios.
+
+### UI journeys
+
+UI coverage is reserved for behaviour that must be proven through a browser:
+
+- authentication;
+- cart state;
+- customer-data validation;
+- checkout review;
+- order confirmation;
+- rendered form results.
 
 ### Network checks
 
 Network checks verify that required resources or service calls are not silently failing underneath an apparently healthy page.
 
-For the current public commerce target, this includes bundle and product-resource responses. In a private product, the same pattern would bind to session, catalogue, pricing, inventory, or cart endpoints.
+For the current public commerce target, Cypress validates JavaScript and product-media responses by resource type rather than by bundler-specific paths. In a private product, the same pattern would normally bind to session, catalogue, pricing, inventory, or cart endpoints.
 
 ### API checks
 
-API checks provide fast feedback below the UI layer. Assertions currently focus on availability and core response shape. A broader engagement would add typed clients, schema validation, authorization boundaries, negative contracts, idempotency, and domain-specific invariants.
+API checks provide feedback below the UI layer. Current assertions cover availability and important response properties. A broader engagement would add schema validation, authorization boundaries, negative contracts, idempotency, and domain-specific invariants.
+
+## Migration quality control
+
+The critical purchase journey is executed independently in Cypress and Playwright.
+
+Parity requires both runners to prove:
+
+- successful authentication;
+- named product selection;
+- cart quantity;
+- checkout progression;
+- product presence in review;
+- subtotal, tax, and total reconciliation;
+- order confirmation;
+- actionable diagnostics on failure.
+
+The detailed retirement model is documented in `MIGRATION_STRATEGY.md`.
 
 ## Stability policy
 
@@ -53,10 +92,26 @@ The framework follows these rules:
 2. Use deterministic selectors and web-first assertions.
 3. Block known third-party noise when it is outside the behaviour under test.
 4. Keep scenarios independent and repeatable.
-5. Preserve evidence on failure.
-6. Treat recurring retry success as flakiness requiring investigation.
+5. Use named entities and explicit invariants instead of positional assumptions.
+6. Preserve evidence on failure.
+7. Treat recurring retry success as flakiness requiring investigation.
+8. Do not weaken assertions to accommodate public-target drift silently.
 
 The repository enforces the no-hard-waits rule through `npm run lint:waits` and includes it in the required quality gate.
+
+## Execution profiles
+
+### Smoke
+
+The smoke slice protects the complete purchase path and runs independently in both runners. It is intended to fail quickly when a release-blocking customer outcome is broken.
+
+### Regression
+
+Regression slices cover supporting authentication, validation, network, API, and form behaviour. They run after their corresponding smoke gates.
+
+### Cross-browser
+
+The Playwright critical path runs across Chromium, Firefox, and WebKit on scheduled and manual workflows. Pull requests remain Chromium-focused for faster feedback.
 
 ## Test data
 
@@ -75,23 +130,22 @@ For a production engagement, the preferred model is:
 
 A failed test should answer three questions quickly:
 
-1. What failed?
+1. What customer or service outcome failed?
 2. What did the browser or service return?
 3. What evidence is available without rerunning locally?
 
-Cypress provides screenshots and video. Playwright provides screenshots, trace, video, and HTML reporting. CI uploads these artifacts on failure.
+Cypress provides screenshots and video. Playwright provides screenshots, trace, video, and HTML reporting. CI uploads evidence packages and produces an operator-facing release summary.
 
 ## Expansion priorities
 
-A larger product would add coverage in this order:
+The next valuable increments are:
 
-1. smoke tagging for release-blocking paths;
-2. typed API clients and schema validation;
-3. domain-level flow objects above Page Objects;
-4. test-data factories and isolated provisioning;
-5. cross-browser nightly regression;
-6. accessibility and visual checks for stable high-value surfaces;
-7. retry-rate, duration, and failure-trend reporting;
-8. explicit suite ownership and quarantine SLAs.
+1. migrate invalid-authentication parity to Playwright;
+2. add JSON-schema validation for service contracts;
+3. isolate test data through factories or builders;
+4. add accessibility checks for stable critical pages;
+5. add visual comparison for high-value surfaces;
+6. track retry rate, duration, and failure trends;
+7. define explicit suite ownership and quarantine SLAs.
 
-The goal is not simply more tests. The goal is faster, more reliable release decisions.
+The goal is not simply more tests. The goal is faster, more reliable release decisions with controlled framework evolution.
