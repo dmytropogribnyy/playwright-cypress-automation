@@ -19,13 +19,15 @@ describe('Customer directory API — paginated users', () => {
     const baseUrl = Cypress.env('reqresBaseUrl') as string;
     const apiKey = Cypress.env('reqresApiKey') as string;
 
-    const headers: Record<string, string> = {};
-    if (apiKey) headers['x-api-key'] = apiKey;
+    expect(
+      apiKey,
+      'REQRES_API_KEY must be configured for authenticated directory coverage'
+    ).to.be.a('string').and.not.be.empty;
 
     cy.request<DirectoryUsersResponse>({
       method: 'GET',
       url: `${baseUrl}/api/users?page=2`,
-      headers,
+      headers: { 'x-api-key': apiKey },
     }).then((response) => {
       expect(response.status, 'status code must be 200').to.eq(200);
 
